@@ -6,48 +6,104 @@ public class CalcIP {
 
     public static void main(String[] args) {
 
-        String entrada = lerIP(); // IP/MR
+        String entrada = lerIP();
+        String[] partesEntrada = entrada.split("/");
+        String ip = partesEntrada[0];
+        int maskBits = Integer.parseInt(partesEntrada[1]);
 
-        String[] partes = entrada.split("/");
-        String ip = partes[0];
-        int maskBits = Integer.parseInt(partes[1]);
+        String classe = lerIP();
+        String enderecoRede = calcularEndRedeMask(ip, maskBits);
+        String enderecoBroadcast = calcularEndBroadcastMask(ip, maskBits);
+        String faixaI = calcularPrimeiroHost(enderecoRede);
+        String faixaF = calcularUltimoHost(enderecoBroadcast);
 
-        String enderecoRede = calcularEndRede(ip, maskBits);
-        String enderecoBroadcast = calcularEndBroadcast(ip, maskBits);
-        String primeiroHost = calcularPrimeiroHost(enderecoRede);
-        String ultimoHost = calcularUltimoHost(enderecoBroadcast);
+        imprimir(ip, maskBits, ip, enderecoRede, enderecoBroadcast, primeiroHost, ultimoHost);
 
-        imprimir(enderecoRede, enderecoBroadcast, primeiroHost, ultimoHost);
     }
 
     public static String lerIP() {
-        System.out.print("Digite o endereço IP e máscara (Ex: 192.168.248.250/24): ");
+        System.out.print("Digite o endereço IP e máscara (Ex: xxx.xxx.xxx.xxx/xx): ");
         return LER.nextLine().trim();
     }
 
-    public static String calcularEndRede(String ip, int maskBits) {
-        int[] ipOctetos = parseIP(ip);
-        int[] mascaraOctetos = gerarMascara(maskBits);
-        int[] redeOctetos = new int[4];
+    public static String calcularEndRedeMask(String ip, int maskBits) {
+        String[] p = ip.split("\\.");
+        int a = Integer.parseInt(p[0]);
+        int b = Integer.parseInt(p[1]);
+        int c = Integer.parseInt(p[2]);
+        int d = Integer.parseInt(p[3]);
 
-        for (int i = 0; i < 4; i++) {
-            redeOctetos[i] = ipOctetos[i] & mascaraOctetos[i];
+        if (maskBits <= 8) {
+            int bloco = (int) Math.pow(2, 8 - maskBits);
+            a = (a / bloco) * bloco;
+            b = 0;
+            c = 0;
+            d = 0;
+
+        } else if (maskBits <= 16) {
+            int resto = maskBits - 8;
+            int bloco = (int) Math.pow(2, 8 - resto);
+            b = (b / bloco) * bloco;
+            c = 0;
+            d = 0;
+
+        } else if (maskBits <= 24) {
+            int resto = maskBits - 16;
+            int bloco = (int) Math.pow(2, 8 - resto);
+            c = (c / bloco) * bloco;
+            d = 0;
+
+        } else {
+            int resto = maskBits - 24;
+            int bloco = (int) Math.pow(2, 8 - resto);
+            d = (d / bloco) * bloco;
         }
 
-        return formatIP(redeOctetos);
+        return a + "." + b + "." + c + "." + d;
     }
 
-    public static String calcularEndBroadcast(String ip, int maskBits) {
-        int[] ipOctetos = parseIP(ip);
-        int[] mascaraOctetos = gerarMascara(maskBits);
-        int[] broadcastOctetos = new int[4];
+    public static String calcularEndBroadcastMask(String ip, int maskBits) {
+        String rede = calcularEndRedeMask(ip, maskBits);
+        String[] p = rede.split("\\.");
+        int a = Integer.parseInt(p[0]);
+        int b = Integer.parseInt(p[1]);
+        int c = Integer.parseInt(p[2]);
+        int d = Integer.parseInt(p[3]);
 
-        for (int i = 0; i < 4; i++) {
-            broadcastOctetos[i] = ipOctetos[i] | (~mascaraOctetos[i] & 0xFF);
+        if (maskBits <= 8) {
+            b = 255;
+            c = 255;
+            d = 255;
+
+        } else if (maskBits <= 16) {
+            c = 255;
+            d = 255;
+
+        } else if (maskBits <= 24) {
+            d = 255;
         }
 
-        return formatIP(broadcastOctetos);
+        int resto = maskBits % 8;
+        if (resto != 0) {
+            int bloco = (int) Math.pow(2, 8 - resto);
+
+            if (maskBits <= 8) {
+                a = a + (bloco - 1);
+
+            } else if (maskBits <= 16) {
+                b = b + (bloco - 1);
+
+            } else if (maskBits <= 24) {
+                c = c + (bloco - 1);
+
+            } else {
+                d = d + (bloco - 1);
+            }
+        }
+
+        return a + "." + b + "." + c + "." + d;
     }
+
 
     public static String calcularPrimeiroHost(String enderecoRede) {
         int[] octetos = parseIP(enderecoRede);
@@ -85,13 +141,15 @@ public class CalcIP {
         return mascaraOctetos;
     }
 
-    private static String formatIP(int[] octetos) {
-        return octetos[0] + "." + octetos[1] + "." + octetos[2] + "." + octetos[3];
-    }
+    public static void imprimir(String ip, int maskBits, String classe,
+        String enderecoRede, String enderecoBroadcast, String faixaI, String faixaF) {
 
-    public static void imprimir(String enderecoRede, String enderecoBroadcast, String primeiroHost, String ultimoHost) {
-        System.out.println("\nRede: " + enderecoRede);
-        System.out.println("Broadcast: " + enderecoBroadcast);
-        System.out.println("Hosts: de " + primeiroHost + " a " + ultimoHost);
-    }
+    System.out.println("\n--- Relatório ---");
+    System.out.println("Endereço IP: " + ip + "/" + maskBits);
+    System.out.println("Classe: " + classe);
+    System.out.println("Endereço de Rede: " + enderecoRede);
+    System.out.println("Endereço de Broadcast: " + enderecoBroadcast);
+    System.out.println("Faixa de Hosts: " + faixaI + " a " + faixaF);
+}
+
 }
