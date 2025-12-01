@@ -6,24 +6,38 @@ public class CalcIP {
 
     public static void main(String[] args) {
 
-        String entrada = lerIP();
-        String[] partesEntrada = entrada.split("/");
+        String IP = lerIP();
+        String[] partesEntrada = IP.split("/");
         String ip = partesEntrada[0];
         int maskBits = Integer.parseInt(partesEntrada[1]);
 
-        String classe = lerIP();
+        String classe = classificarIP(ip);
         String enderecoRede = calcularEndRedeMask(ip, maskBits);
         String enderecoBroadcast = calcularEndBroadcastMask(ip, maskBits);
-        String faixaI = calcularPrimeiroHost(enderecoRede);
-        String faixaF = calcularUltimoHost(enderecoBroadcast);
+        String primeiroHost = calcularPrimeiroHost(enderecoRede);
+        String ultimoHost = calcularUltimoHost(enderecoBroadcast);
 
-        imprimir(ip, maskBits, ip, enderecoRede, enderecoBroadcast, primeiroHost, ultimoHost);
-
+        imprimir(ip, maskBits, classe, enderecoRede, enderecoBroadcast, primeiroHost, ultimoHost);
     }
 
     public static String lerIP() {
         System.out.print("Digite o endereço IP e máscara (Ex: xxx.xxx.xxx.xxx/xx): ");
         return LER.nextLine().trim();
+    }
+
+    public static String classificarIP(String ip) {
+        String[] partes = ip.split("\\.");
+        int num = Integer.parseInt(partes[0]);
+
+        if (num >= 0 && num <= 127) {
+            return "A";
+        } else if (num >= 128 && num <= 191) {
+            return "B";
+        } else if (num >= 192 && num <= 223) {
+            return "C";
+        } else {
+            return "Inválido";
+        }
     }
 
     public static String calcularEndRedeMask(String ip, int maskBits) {
@@ -89,13 +103,10 @@ public class CalcIP {
 
             if (maskBits <= 8) {
                 a = a + (bloco - 1);
-
             } else if (maskBits <= 16) {
                 b = b + (bloco - 1);
-
             } else if (maskBits <= 24) {
                 c = c + (bloco - 1);
-
             } else {
                 d = d + (bloco - 1);
             }
@@ -104,52 +115,26 @@ public class CalcIP {
         return a + "." + b + "." + c + "." + d;
     }
 
-
-    public static String calcularPrimeiroHost(String enderecoRede) {
-        int[] octetos = parseIP(enderecoRede);
-        octetos[3] += 1;
-        return formatIP(octetos);
+    public static String calcularPrimeiroHost(String rede) {
+        String[] p = rede.split("\\.");
+        int d = Integer.parseInt(p[3]) + 1;
+        return p[0] + "." + p[1] + "." + p[2] + "." + d;
     }
 
-    public static String calcularUltimoHost(String enderecoBroadcast) {
-        int[] octetos = parseIP(enderecoBroadcast);
-        octetos[3] -= 1;
-        return formatIP(octetos);
-    }
-
-    // Métodos auxiliares
-    private static int[] parseIP(String ip) {
-        String[] partes = ip.split("\\.");
-        int[] octetos = new int[4];
-        for (int i = 0; i < 4; i++) {
-            octetos[i] = Integer.parseInt(partes[i]);
-        }
-        return octetos;
-    }
-
-    private static int[] gerarMascara(int maskBits) {
-        int[] mascaraOctetos = new int[4];
-        for (int i = 0; i < 4; i++) {
-            if (maskBits >= 8) {
-                mascaraOctetos[i] = 255;
-                maskBits -= 8;
-            } else {
-                mascaraOctetos[i] = (int)(256 - Math.pow(2, 8 - maskBits));
-                maskBits = 0;
-            }
-        }
-        return mascaraOctetos;
+    public static String calcularUltimoHost(String broadcast) {
+        String[] p = broadcast.split("\\.");
+        int d = Integer.parseInt(p[3]) - 1;
+        return p[0] + "." + p[1] + "." + p[2] + "." + d;
     }
 
     public static void imprimir(String ip, int maskBits, String classe,
         String enderecoRede, String enderecoBroadcast, String faixaI, String faixaF) {
 
-    System.out.println("\n--- Relatório ---");
-    System.out.println("Endereço IP: " + ip + "/" + maskBits);
-    System.out.println("Classe: " + classe);
-    System.out.println("Endereço de Rede: " + enderecoRede);
-    System.out.println("Endereço de Broadcast: " + enderecoBroadcast);
-    System.out.println("Faixa de Hosts: " + faixaI + " a " + faixaF);
-}
-
+        System.out.println("\n--- Relatório ---");
+        System.out.println("Endereço IP: " + ip + "/" + maskBits);
+        System.out.println("Classe: " + classe);
+        System.out.println("Endereço de Rede: " + enderecoRede);
+        System.out.println("Endereço de Broadcast: " + enderecoBroadcast);
+        System.out.println("Faixa de Hosts: " + faixaI + " a " + faixaF);
+    }
 }
